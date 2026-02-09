@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>IELTS Listening – 40 Questions</title>
+  <style>
+    body{font-family:Arial, sans-serif; max-width:980px; margin:0 auto; padding:18px;}
+    .top{display:flex; gap:12px; flex-wrap:wrap; align-items:center; justify-content:space-between;}
+    .note{font-weight:700; color:#b00000; margin-top:6px;}
+    .timer{font-weight:800; font-size:18px;}
+    .card{border:1px solid #ddd; border-radius:12px; padding:14px; margin:12px 0;}
+    .imgwrap img{max-width:100%; height:auto; border-radius:10px; border:1px solid #eee;}
+    .q{display:flex; gap:10px; align-items:center; margin:8px 0;}
+    .q label{min-width:70px; font-weight:700;}
+    input[type="text"]{width:100%; padding:8px; font-size:14px; text-transform:uppercase;}
+    .actions{display:flex; gap:10px; flex-wrap:wrap;}
+    button{padding:10px 14px; font-size:15px; cursor:pointer;}
+    .muted{color:#666; font-size:13px;}
+    .ok{color:#0a7a0a; font-weight:800;}
+    .bad{color:#b00000; font-weight:800;}
+  </style>
+</head>
+<body>
+
+  <div class="top">
+    <div>
+      <h2 style="margin:0">🎧 IELTS Listening – 40 Questions</h2>
+      <div class="note">[Please write your answers in ALL CAPITAL LETTERS for them to be counted.]</div>
+    </div>
+    <div class="timer">⏱ <span id="timeLeft">--:--</span></div>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:0">🎧 Audio (MP3 on GitHub Pages)</h3>
+    <!-- ✅ Đặt MP3 vào assets/audio.mp3 -->
+    <audio id="audio" controls style="width:100%" controlsList="nodownload noplaybackrate">
+      <source src="./assets/audio.mp3" type="audio/mpeg" />
+      Trình duyệt không hỗ trợ audio.
+    </audio>
+    <div class="muted" style="margin-top:6px">
+      Nếu audio không chạy: kiểm tra file <b>assets/audio.mp3</b> tồn tại và đúng tên.
+    </div>
+  </div>
+
+  <div id="sections"></div>
+
+  <div class="card">
+    <div class="actions">
+      <button id="submitBtn" type="button">SUBMIT</button>
+      <button id="downloadBtn" type="button">DOWNLOAD ANSWERS (.txt)</button>
+      <button id="clearBtn" type="button">CLEAR ALL</button>
+    </div>
+    <div id="status" class="muted" style="margin-top:10px"></div>
+    <div class="muted" style="margin-top:6px">
+      GitHub Pages là site tĩnh nên không “lưu” lên server được. Nút Download giúp bạn lấy đáp án để chấm/nhập vào hệ thống khác.
+    </div>
+  </div>
+
+<script>
+  // ====== CẤU HÌNH ======
+  const TIME_LIMIT_MINUTES = 40; // đổi nếu muốn
+  const NOTE_TEXT = "[Please write your answers in ALL CAPITAL LETTERS for them to be counted.]";
+
+  // ✅ Đặt 8 hình vào assets/img/ theo đúng tên hoặc sửa lại đường dẫn dưới đây
+  const IMAGE_PATHS = [
+    "./assets/img/q1-5.png",
+    "./assets/img/q6-10.png",
+    "./assets/img/q11-15.png",
+    "./assets/img/q16-20.png",
+    "./assets/img/q21-25.png",
+    "./assets/img/q26-30.png",
+    "./assets/img/q31-35.png",
+    "./assets/img/q36-40.png",
+  ];
+
+  const QUESTIONS_PER_IMAGE = 5;
+  const TOTAL_QUESTIONS = 40;
+
+  // ====== TIMER ======
+  let remaining = TIME_LIMIT_MINUTES * 60;
+  let timerHandle = null;
+
+  function pad(n){ return String(n).padStart(2,"0"); }
+  function renderTime(){
+    const m = Math.floor(remaining/60), s = remaining%60;
+    const el = document.getElementById("timeLeft");
+    el.textContent = `${pad(m)}:${pad(s)}`;
+    if (remaining <= 60) el.style.color = "#b00000";
+  }
+  function startTimer(){
+    renderTime();
+    timerHandle = setInterval(() => {
+      remaining--;
+      if (remaining <= 0){
+        remaining = 0;
+        renderTime();
+        clearInterval(timerHandle);
+        autoSubmit();
+        return;
+      }
+      renderTime();
+    }, 1000);
+  }
+
+  // ====== UI BUILD ======
+  function buildUI(){
+    const container = document.getElementById("sections");
+    container.innerHTML = "";
+    let q = 1;
+
+    for (let block = 0; block < 8; block++){
+      const startQ = q;
+      const endQ = q + QUESTIONS_PER_IMAGE - 1;
+
+      const card = document.createElement("div");
+      card.className = "card";
+
+      const h = document.createElement("h3");
+      h.style.marginTop = "0";
+      h.textContent = `Questions ${startQ}–${endQ}`;
+      card.appendChild(h);
+
+      const note = document.createElement("div");
+      note.className = "note";
+      note.textContent = NOTE_TEXT;
+      card.appendChild(note);
+
+      const imgWrap = document.createElement("div");
+      imgWrap.className = "imgwrap";
+      imgWrap.style.margin = "10px 0";
+      const img = document.createElement("img");
+      img.alt = `Image for Questions ${startQ}-${endQ}`;
+      img.src = IMAGE_PATHS[block];
+      imgWrap.appendChild(img);
+      card.appendChild(imgWrap);
+
+      for (let i = 0; i < QUESTIONS_PER_IMAGE; i++){
+        const row = document.createElement("div");
+        row.className = "q";
+
+        const label = document.createElement("label");
+        label.textContent = `Q${q}:`;
+        row.appendChild(label);
+
+        const input = document.createElement("input");
+        input.type = "text";
+        input.name = "q" + q;
+        input.required = true;
+        input.placeholder = "TYPE ANSWER (A–Z)";
+        input.addEventListener("input", () => {
+          input.value = input.value.toUpperCase().replace(/[^A-Z]/g,"");
+        });
+
+        row.appendChild(input);
+        card.appendChild(row);
+        q++;
+      }
+
+      container.appendChild(card);
+    }
+  }
+
+  // ====== ANSWERS ======
+  function collectAnswers(){
+    const answers = [];
+    for (let i=1;i<=TOTAL_QUESTIONS;i++){
+      const el = document.querySelector(`input[name="q${i}"]`);
+      answers.push((el?.value || "").trim().toUpperCase());
+    }
+    return answers;
+  }
+
+  function validateAnswers(ans){
+    for (let i=0;i<ans.length;i++){
+      if (!ans[i]) return {ok:false, msg:`Vui lòng điền Question ${i+1}.`};
+      if (!/^[A-Z]+$/.test(ans[i])) return {ok:false, msg:`Sai định dạng ở Question ${i+1} (chỉ A–Z, IN HOA).`};
+    }
+    return {ok:true};
+  }
+
+  function submit(isAuto=false){
+    const status = document.getElementById("status");
+    const ans = collectAnswers();
+    const check = validateAnswers(ans);
+    if (!check.ok){
+      status.textContent = check.msg;
+      status.className = "bad";
+      return;
+    }
+    status.textContent = isAuto ? "✅ Hết giờ — đã nộp (local)." : "✅ Đã nộp (local).";
+    status.className = "ok";
+    document.getElementById("submitBtn").disabled = true;
+  }
+
+  function autoSubmit(){ submit(true); }
+
+  function downloadAnswers(){
+    const ans = collectAnswers();
+    const check = validateAnswers(ans);
+    if (!check.ok){
+      const status = document.getElementById("status");
+      status.textContent = check.msg;
+      status.className = "bad";
+      return;
+    }
+    const lines = ans.map((v,i)=>`Q${i+1}: ${v}`);
+    const blob = new Blob([lines.join("\n")], {type:"text/plain;charset=utf-8"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "listening_answers.txt";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  function clearAll(){
+    if (!confirm("Xoá toàn bộ đáp án?")) return;
+    for (let i=1;i<=TOTAL_QUESTIONS;i++){
+      const el = document.querySelector(`input[name="q${i}"]`);
+      if (el) el.value = "";
+    }
+    document.getElementById("status").textContent = "";
+    document.getElementById("status").className = "muted";
+    document.getElementById("submitBtn").disabled = false;
+  }
+
+  // ===== init =====
+  buildUI();
+  startTimer();
+
+  document.getElementById("submitBtn").addEventListener("click", () => submit(false));
+  document.getElementById("downloadBtn").addEventListener("click", downloadAnswers);
+  document.getElementById("clearBtn").addEventListener("click", clearAll);
+</script>
+
+</body>
+</html>
