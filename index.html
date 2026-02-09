@@ -354,44 +354,45 @@ async function postToGoogleSheets(payload){
 
 async function submitAndSave(auto=false){
   const status = document.getElementById("status");
-  const name = (document.getElementById("studentName").value || "").trim();
+  const name = (document.getElementById("studentName")?.value || "").trim();
   const usedPassword = sessionStorage.getItem("used_password") || "";
-  const ans = getAnswers();
 
-  const check = validateAnswers(ans);
-  if (!check.ok){
-    status.innerHTML = `<span class="bad">${check.msg}</span>`;
+  const answers = Array.from(
+    document.querySelectorAll("input[type='text']")
+  ).map(i => (i.value || "").trim().toUpperCase());
+
+  // kiểm tra đủ 40 câu
+  if (answers.length !== 40 || answers.some(a => !a)) {
+    status.innerHTML = `<span class="bad">Vui lòng trả lời đủ 40 câu.</span>`;
     return;
   }
 
-  const local = scoreAnswers(ans);
-  status.textContent = auto ? "Time up. Saving to Google Sheets..." : "Saving to Google Sheets...";
-
-  const payload = {
-    name,
-    passwordUsed: usedPassword,
-    answers: ans,
-    clientScore: local.score,
-    clientTotal: local.total,
-    submittedAt: new Date().toISOString(),
-    userAgent: navigator.userAgent
-  };
+  status.textContent = "Đang nộp bài...";
 
   try {
-    const out = await postToGoogleSheets(payload);
-    if (!out || !out.ok) throw new Error(out?.error || "Unknown error");
+    const res = await fetch(ENDPOINT_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({
+        name,
+        passwordUsed: usedPassword,
+        answers
+      })
+    });
 
-    // Nếu server trả score thì ưu tiên score server
-    const score = (out.score ?? local.score);
-    const total = (out.total ?? local.total);
+    const out = await res.json();
+    if (!out.ok) throw new Error(out.error || "Submit failed");
 
-    status.innerHTML = `<span class="ok">✅ Saved to Google Sheets. Score: ${score}/${total}</span>`;
-  } catch (e){
-    status.innerHTML =
-      `<span class="bad">❌ Save failed: ${e.message || e}</span><br>` +
-      `<span class="muted">Điểm (local): ${local.score}/${local.total}. Bạn vẫn có thể tải CSV.</span>`;
+    // ✅ THÀNH CÔNG → CHUYỂN TRANG
+    sessionStorage.setItem("completed", "1");
+    sessionStorage.removeItem("unlocked");
+
+    window.location.href = "done.html";
+  } catch (e) {
+    status.innerHTML = `<span class="bad">❌ ${e.message}</span>`;
   }
 }
+
 
 /* =========================
    10) DOWNLOAD CSV (Excel)
