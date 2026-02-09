@@ -2,194 +2,452 @@
 <html lang="vi">
 <head>
   <meta charset="utf-8">
-  <title>IELTS Listening – 40 Questions</title>
+  <title>IELTS Listening – Test 81</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      max-width: 980px;
-      margin: auto;
-      padding: 20px;
+    body{font-family:Arial,sans-serif;max-width:980px;margin:auto;padding:20px}
+    h2{margin:0 0 6px}
+    .note{font-weight:700;color:#b00000;margin:6px 0 18px}
+    .timer{font-size:18px;font-weight:800;margin-bottom:12px}
+    .card{border:1px solid #ddd;border-radius:12px;padding:15px;margin-bottom:18px}
+    .imgwrap img{max-width:100%;border-radius:10px;border:1px solid #eee}
+    .question{display:flex;align-items:center;margin:8px 0;gap:10px}
+    .question label{width:70px;font-weight:700}
+    input[type="text"]{width:100%;padding:8px;font-size:14px;text-transform:uppercase}
+    button{padding:10px 15px;font-size:15px;cursor:pointer}
+    .actions{display:flex;gap:10px;flex-wrap:wrap}
+    .ok{color:#0a7a0a;font-weight:800}
+    .bad{color:#b00000;font-weight:800}
+    .muted{color:#666;font-size:13px}
+
+    /* Password overlay */
+    .overlay{
+      position:fixed; inset:0; background:rgba(0,0,0,.55);
+      display:flex; align-items:center; justify-content:center;
+      z-index:9999;
     }
-    h2 { margin-bottom: 5px; }
-    .note {
-      font-weight: bold;
-      color: #b00000;
-      margin-bottom: 20px;
+    .modal{
+      width:min(420px, 92vw);
+      background:#fff; border-radius:14px; padding:18px;
+      border:1px solid #ddd;
+      box-shadow:0 10px 30px rgba(0,0,0,.25);
     }
-    .timer {
-      font-size: 18px;
-      font-weight: bold;
-      margin-bottom: 15px;
+    .modal h3{margin:0 0 10px}
+    .modal input{
+      width:100%; padding:10px; font-size:15px;
+      margin:8px 0 12px; border:1px solid #ccc; border-radius:10px;
     }
-    .card {
-      border: 1px solid #ddd;
-      border-radius: 12px;
-      padding: 15px;
-      margin-bottom: 20px;
-    }
-    .imgwrap img {
-      max-width: 100%;
-      border-radius: 10px;
-      border: 1px solid #eee;
-    }
-    .question {
-      display: flex;
-      align-items: center;
-      margin: 8px 0;
-      gap: 10px;
-    }
-    .question label {
-      width: 70px;
-      font-weight: bold;
-    }
-    input[type="text"] {
-      width: 100%;
-      padding: 8px;
-      font-size: 14px;
-      text-transform: uppercase;
-    }
-    button {
-      padding: 10px 15px;
-      font-size: 15px;
-      cursor: pointer;
-    }
-    .actions {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
-    .ok { color: #0a7a0a; font-weight: bold; }
-    .bad { color: #b00000; font-weight: bold; }
   </style>
 </head>
 
 <body>
 
+<!-- 🔒 Password Gate -->
+<div id="gate" class="overlay" style="display:none">
+  <div class="modal">
+    <h3>🔒 Nhập mật khẩu để bắt đầu</h3>
+    <div class="muted">Bạn phải nhập đúng 1 trong các mật khẩu được cấp.</div>
+    <input id="pw" type="password" placeholder="Mật khẩu..." autocomplete="off">
+    <div class="actions">
+      <button type="button" onclick="unlock()">VÀO BÀI</button>
+      <button type="button" onclick="location.reload()">TẢI LẠI</button>
+    </div>
+    <div id="pwMsg" class="bad" style="margin-top:10px; display:none"></div>
+  </div>
+</div>
+
 <h2>🎧 IELTS LISTENING – 40 QUESTIONS</h2>
-<div class="note">
-  [Please write your answers in ALL CAPITAL LETTERS for them to be counted.]
+<div class="note">[Please write your answers in ALL CAPITAL LETTERS for them to be counted.]</div>
+
+<div class="card">
+  <div class="muted">Tên học viên (tuỳ chọn)</div>
+  <input id="studentName" type="text" placeholder="Nhập tên..." style="margin-top:6px">
 </div>
 
 <div class="timer">⏱ Time left: <span id="time">40:00</span></div>
 
 <div class="card">
-  <h3>🎧 Listening Audio</h3>
-  <audio controls style="width:100%">
-    <source src="./assets/audio.mp3" type="audio/mpeg">
+  <h3 style="margin-top:0">🎧 Listening Audio (không cho tua)</h3>
+  <audio id="audio" controls style="width:100%" controlsList="nodownload noplaybackrate">
+    <source src="assets/audio.mp3" type="audio/mpeg">
     Your browser does not support audio.
   </audio>
+  <div class="muted" style="margin-top:8px">
+    “Không cho tua” là best-effort (ngăn người dùng bình thường). Nếu cần khóa tuyệt đối, phải dùng backend.
+  </div>
 </div>
 
 <div id="sections"></div>
 
 <div class="card">
   <div class="actions">
-    <button onclick="submitTest()">SUBMIT</button>
-    <button onclick="clearAll()">CLEAR ALL</button>
+    <button type="button" onclick="submitAndSave()">SUBMIT & SAVE TO GOOGLE SHEETS</button>
+    <button type="button" onclick="downloadCSV()">DOWNLOAD CSV (mở Excel)</button>
+    <button type="button" onclick="clearAll()">CLEAR ALL</button>
   </div>
-  <div id="status"></div>
+  <div id="status" class="muted" style="margin-top:10px"></div>
 </div>
 
 <script>
-  /* ===== CẤU HÌNH ===== */
-  const IMAGE_PATHS = [
-    "./assets/img/1.png",
-    "./assets/img/2.png",
-    "./assets/img/3.png",
-    "./assets/img/4.png",
-    "./assets/img/5.png",
-    "./assets/img/6.png",
-    "./assets/img/7.png",
-    "./assets/img/8.png"
-  ];
+/* =========================
+   1) GOOGLE SHEETS ENDPOINT
+   ========================= */
+// ✅ DÁN LINK Web App Apps Script của bạn vào đây (kết thúc bằng /exec)
+const ENDPOINT_URL = "PASTE_YOUR_WEB_APP_URL_HERE";
 
-  const QUESTIONS_PER_IMAGE = 5;
-  const TOTAL_QUESTIONS = 40;
-  const TIME_LIMIT = 40 * 60; // giây
+/* =========================
+   2) 44 PASSWORDS
+   ========================= */
+const VALID_PASSWORDS = new Set([
+  "2504887286",
+  "2504887306",
+  "2300110233",
+  "2300110054",
+  "2300109906",
+  "2504887506",
+  "2300110147",
+  "2300110236",
+  "2300110102",
+  "2504887626",
+  "2300110056",
+  "2504887486",
+  "2504887346",
+  "2504887166",
+  "2504887186",
+  "2504887206",
+  "2504887386",
+  "2300110199",
+  "2504887526",
+  "2504887246",
+  "2504887226",
+  "2300110296",
+  "2504887146",
+  "2504887426",
+  "2300110202",
+  "2504887546",
+  "2300110121",
+  "2300110123",
+  "2504887266",
+  "2300110125",
+  "2504887446",
+  "2300109937",
+  "2504887566",
+  "2300110031",
+  "2300110262",
+  "2504887586",
+  "2504887366",
+  "2300110223",
+  "2300110180",
+  "2504887466",
+  "2504887406",
+  "2504887606",
+  "2300110269",
+  "2504887326"
+]);
 
-  /* ===== BUILD UI ===== */
-  const container = document.getElementById("sections");
-  let q = 1;
+/* =========================
+   3) CONFIG: images + time
+   ========================= */
+const IMAGE_PATHS = [
+  "assets/img/1.png",
+  "assets/img/2.png",
+  "assets/img/3.png",
+  "assets/img/4.png",
+  "assets/img/5.png",
+  "assets/img/6.png",
+  "assets/img/7.png",
+  "assets/img/8.png"
+];
 
-  for (let block = 0; block < 8; block++) {
-    const start = q;
-    const end = q + QUESTIONS_PER_IMAGE - 1;
+const QUESTIONS_PER_IMAGE = 5;
+const TOTAL_IMAGES = 8;
+const TOTAL_QUESTIONS = 40;
+const TIME_LIMIT = 40 * 60; // seconds
 
-    const card = document.createElement("div");
-    card.className = "card";
+/* =========================
+   4) ANSWER KEY (40 answers)
+   - Viết HOA.
+   - Nếu đáp án có khoảng trắng/số (VD: "4.5 POUNDS"), để đúng như vậy.
+   ========================= */
+const ANSWER_KEY = [
+  // 🔁 THAY BẰNG ĐÁP ÁN THẬT CỦA BẠN (40 mục)
+  "A","B","C","A","B",
+  "A","B","C","A","B",
+  "A","B","C","A","B",
+  "A","B","C","A","B",
+  "A","B","C","A","B",
+  "A","B","C","A","B",
+  "A","B","C","A","B",
+  "A","B","C","A","B"
+];
 
-    const title = document.createElement("h3");
-    title.textContent = `Questions ${start}–${end}`;
-    card.appendChild(title);
+/* =========================
+   5) PASSWORD GATE
+   ========================= */
+const gate = document.getElementById("gate");
+let timerStarted = false;
+let remaining = TIME_LIMIT;
+let timerHandle = null;
 
-    const imgWrap = document.createElement("div");
-    imgWrap.className = "imgwrap";
-    const img = document.createElement("img");
-    img.src = IMAGE_PATHS[block];
-    imgWrap.appendChild(img);
-    card.appendChild(imgWrap);
+function showGateIfLocked(){
+  if (sessionStorage.getItem("unlocked") === "1") return;
+  gate.style.display = "flex";
+  document.body.style.overflow = "hidden";
+}
 
-    for (let i = 0; i < QUESTIONS_PER_IMAGE; i++) {
-      const row = document.createElement("div");
-      row.className = "question";
+function unlock(){
+  const pw = (document.getElementById("pw").value || "").trim();
+  const msg = document.getElementById("pwMsg");
 
-      const label = document.createElement("label");
-      label.textContent = `Q${q}:`;
-      row.appendChild(label);
+  if (VALID_PASSWORDS.has(pw)) {
+    sessionStorage.setItem("unlocked", "1");
+    sessionStorage.setItem("used_password", pw);
+    gate.style.display = "none";
+    document.body.style.overflow = "auto";
+    msg.style.display = "none";
+    if (!timerStarted) startTimer();
+  } else {
+    msg.textContent = "Sai mật khẩu. Vui lòng thử lại.";
+    msg.style.display = "block";
+  }
+}
 
-      const input = document.createElement("input");
-      input.type = "text";
-      input.required = true;
-      input.oninput = () => {
-        input.value = input.value.toUpperCase().replace(/[^A-Z]/g, "");
-      };
+/* =========================
+   6) BUILD UI (8 images, 40 questions)
+   ========================= */
+const container = document.getElementById("sections");
+let q = 1;
 
-      row.appendChild(input);
-      card.appendChild(row);
-      q++;
-    }
+for (let block = 0; block < TOTAL_IMAGES; block++) {
+  const start = q;
+  const end = q + QUESTIONS_PER_IMAGE - 1;
 
-    container.appendChild(card);
+  const card = document.createElement("div");
+  card.className = "card";
+
+  const title = document.createElement("h3");
+  title.style.marginTop = "0";
+  title.textContent = `Questions ${start}–${end}`;
+  card.appendChild(title);
+
+  const imgWrap = document.createElement("div");
+  imgWrap.className = "imgwrap";
+  imgWrap.style.margin = "10px 0";
+
+  const img = document.createElement("img");
+  img.src = IMAGE_PATHS[block];
+  img.alt = `Image for Questions ${start}-${end}`;
+  imgWrap.appendChild(img);
+
+  card.appendChild(imgWrap);
+
+  for (let i = 0; i < QUESTIONS_PER_IMAGE; i++) {
+    const row = document.createElement("div");
+    row.className = "question";
+
+    const label = document.createElement("label");
+    label.textContent = `Q${q}:`;
+    row.appendChild(label);
+
+    const input = document.createElement("input");
+    input.type = "text";
+    input.required = true;
+    input.placeholder = "TYPE ANSWER (CAPS)";
+    input.addEventListener("input", () => {
+      // ✅ auto uppercase
+      // ✅ cho phép: A-Z, 0-9, khoảng trắng, chấm, gạch ngang, slash, dấu nháy đơn
+      input.value = input.value
+        .toUpperCase()
+        .replace(/[^A-Z0-9 .\-\/']/g, "");
+    });
+
+    row.appendChild(input);
+    card.appendChild(row);
+    q++;
   }
 
-  /* ===== TIMER ===== */
-  let remaining = TIME_LIMIT;
-  const timeEl = document.getElementById("time");
+  container.appendChild(card);
+}
 
-  function tick() {
-    const m = Math.floor(remaining / 60);
-    const s = remaining % 60;
-    timeEl.textContent = `${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`;
-    if (remaining <= 0) {
-      submitTest(true);
-      return;
-    }
-    remaining--;
-    setTimeout(tick, 1000);
+/* =========================
+   7) TIMER (start after unlock)
+   ========================= */
+const timeEl = document.getElementById("time");
+
+function tick(){
+  const m = Math.floor(remaining / 60);
+  const s = remaining % 60;
+  timeEl.textContent = `${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`;
+
+  if (remaining <= 0) {
+    submitAndSave(true);
+    return;
   }
+  remaining--;
+  timerHandle = setTimeout(tick, 1000);
+}
+
+function startTimer(){
+  timerStarted = true;
   tick();
+}
 
-  /* ===== SUBMIT ===== */
-  function submitTest(auto=false) {
-    const inputs = document.querySelectorAll("input");
-    for (let i = 0; i < inputs.length; i++) {
-      if (!inputs[i].value) {
-        document.getElementById("status").innerHTML =
-          `<span class="bad">Please answer Question ${i+1}</span>`;
-        return;
-      }
-    }
-    document.getElementById("status").innerHTML =
-      `<span class="ok">${auto ? "Time up. " : ""}Answers submitted successfully.</span>`;
+/* =========================
+   8) AUDIO NO-SEEK (best effort)
+   ========================= */
+const audio = document.getElementById("audio");
+let lastGoodTime = 0;
+
+audio.addEventListener("timeupdate", () => {
+  if (!audio.seeking) lastGoodTime = audio.currentTime;
+});
+
+audio.addEventListener("seeking", () => {
+  if (Math.abs(audio.currentTime - lastGoodTime) > 0.8) {
+    audio.currentTime = lastGoodTime;
+  }
+});
+
+/* =========================
+   9) SCORING + SUBMIT TO GOOGLE
+   ========================= */
+function getAnswers(){
+  const inputs = document.querySelectorAll("input[type='text']");
+  return Array.from(inputs).map(i => (i.value || "").trim().toUpperCase());
+}
+
+function validateAnswers(ans){
+  for (let i = 0; i < ans.length; i++){
+    if (!ans[i]) return { ok:false, msg:`Please answer Question ${i+1}` };
+  }
+  return { ok:true };
+}
+
+function scoreAnswers(ans){
+  const total = Math.min(ANSWER_KEY.length, ans.length);
+  let score = 0;
+
+  for (let i = 0; i < total; i++){
+    const a = (ans[i] || "").trim().toUpperCase();
+    const k = (ANSWER_KEY[i] || "").trim().toUpperCase();
+    if (k && a === k) score++;
+  }
+  return { score, total };
+}
+
+async function postToGoogleSheets(payload){
+  if (!ENDPOINT_URL || ENDPOINT_URL.includes("PASTE_YOUR_WEB_APP_URL_HERE")) {
+    throw new Error("Chưa dán ENDPOINT_URL (Web App /exec).");
   }
 
-  function clearAll() {
-    if (!confirm("Clear all answers?")) return;
-    document.querySelectorAll("input").forEach(i => i.value = "");
-    document.getElementById("status").innerHTML = "";
+  const res = await fetch(ENDPOINT_URL, {
+    method: "POST",
+    // text/plain giúp tránh một số vấn đề CORS/preflight
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify(payload)
+  });
+
+  const data = await res.json();
+  return data;
+}
+
+async function submitAndSave(auto=false){
+  const status = document.getElementById("status");
+  const name = (document.getElementById("studentName").value || "").trim();
+  const usedPassword = sessionStorage.getItem("used_password") || "";
+  const ans = getAnswers();
+
+  const check = validateAnswers(ans);
+  if (!check.ok){
+    status.innerHTML = `<span class="bad">${check.msg}</span>`;
+    return;
   }
+
+  const local = scoreAnswers(ans);
+  status.textContent = auto ? "Time up. Saving to Google Sheets..." : "Saving to Google Sheets...";
+
+  const payload = {
+    name,
+    passwordUsed: usedPassword,
+    answers: ans,
+    clientScore: local.score,
+    clientTotal: local.total,
+    submittedAt: new Date().toISOString(),
+    userAgent: navigator.userAgent
+  };
+
+  try {
+    const out = await postToGoogleSheets(payload);
+    if (!out || !out.ok) throw new Error(out?.error || "Unknown error");
+
+    // Nếu server trả score thì ưu tiên score server
+    const score = (out.score ?? local.score);
+    const total = (out.total ?? local.total);
+
+    status.innerHTML = `<span class="ok">✅ Saved to Google Sheets. Score: ${score}/${total}</span>`;
+  } catch (e){
+    status.innerHTML =
+      `<span class="bad">❌ Save failed: ${e.message || e}</span><br>` +
+      `<span class="muted">Điểm (local): ${local.score}/${local.total}. Bạn vẫn có thể tải CSV.</span>`;
+  }
+}
+
+/* =========================
+   10) DOWNLOAD CSV (Excel)
+   ========================= */
+function downloadCSV(){
+  const status = document.getElementById("status");
+  const name = (document.getElementById("studentName").value || "").trim();
+  const usedPassword = sessionStorage.getItem("used_password") || "";
+  const ans = getAnswers();
+
+  const check = validateAnswers(ans);
+  if (!check.ok){
+    status.innerHTML = `<span class="bad">${check.msg}</span>`;
+    return;
+  }
+
+  const res = scoreAnswers(ans);
+  const ts = new Date().toISOString();
+
+  const header = ["Timestamp","Name","PasswordUsed","Score","Total", ...Array.from({length:TOTAL_QUESTIONS},(_,i)=>`Q${i+1}`)];
+  const row = [ts, name, usedPassword, res.score, res.total, ...ans];
+
+  const esc = (v) => {
+    const s = String(v ?? "");
+    return /[",\n]/.test(s) ? `"${s.replace(/"/g,'""')}"` : s;
+  };
+
+  const csv = header.map(esc).join(",") + "\n" + row.map(esc).join(",") + "\n";
+  const blob = new Blob([csv], {type:"text/csv;charset=utf-8"});
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "listening_score.csv";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+
+  status.innerHTML = `<span class="ok">Downloaded CSV ✅</span>`;
+}
+
+/* =========================
+   11) CLEAR
+   ========================= */
+function clearAll(){
+  if (!confirm("Clear all answers?")) return;
+  document.querySelectorAll("input[type='text']").forEach(i => i.value = "");
+  document.getElementById("status").innerHTML = "";
+}
+
+/* =========================
+   INIT
+   ========================= */
+showGateIfLocked();
+if (sessionStorage.getItem("unlocked") === "1") startTimer();
 </script>
 
 </body>
