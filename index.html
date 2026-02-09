@@ -379,7 +379,13 @@ async function submitAndSave(auto=false){
 
   try {
     const out = await postToGoogleSheets(payload);
-    if (!out || !out.ok) throw new Error(out?.error || "Unknown error");
+// ✅ CHUYỂN SANG TRANG HOÀN THÀNH
+sessionStorage.removeItem("unlocked");   // xoá trạng thái làm bài
+sessionStorage.setItem("completed", "1"); // đánh dấu đã xong
+
+window.location.href = "done.html";
+return;
+;
 
     // Nếu server trả score thì ưu tiên score server
     const score = (out.score ?? local.score);
@@ -446,10 +452,16 @@ function clearAll(){
 /* =========================
    INIT
    ========================= */
-showGateIfLocked();
-if (sessionStorage.getItem("unlocked") === "1") startTimer();
+// Nếu đã hoàn thành thì không cho vào lại
+if (sessionStorage.getItem("completed") === "1") {
+  window.location.href = "done.html";
+} else {
+  showGateIfLocked();
+  if (sessionStorage.getItem("unlocked") === "1") startTimer();
+}
+
 </script>
-window.location.href = "done.html";
+
 
 </body>
 </html>
